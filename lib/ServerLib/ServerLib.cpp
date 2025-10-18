@@ -1,4 +1,3 @@
-
 #include "ServerLib.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
@@ -23,6 +22,12 @@ IPAddress subnet(255, 255, 255, 0);
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 DNSServer dnsServer;
+
+extern bool newRequest;
+extern char message;
+extern bool isWordMode;           // Add new flag
+extern String currentWord;        // Add word storage
+extern int currentLetterIndex;    // Add letter index
 
 void StartServer()
 {
@@ -142,10 +147,24 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
     {
         data[len] = 0;
-        message = ((char *)data)[0];
-        String messageStr = String(message); // Convert char to String
-        ws.textAll(messageStr.c_str());      // Send the string
-        newRequest = true;
+        String receivedMessage = String((char*)data);
+        
+        // Check if it's a word sequence
+        if (receivedMessage.startsWith("WORD:")) {
+            currentWord = receivedMessage.substring(5); // Remove "WORD:" prefix
+            currentLetterIndex = 0;
+            isWordMode = true;
+            newRequest = true;
+            Serial.println("Word received: " + currentWord);
+        } else if (len == 1) {
+            // Single character (existing functionality)
+            message = (char)data[0];
+            isWordMode = false;
+            newRequest = true;
+            Serial.println("Single character: " + String(message));
+        }
+        
+        ws.textAll(String((char*)data));
     }
 }
 

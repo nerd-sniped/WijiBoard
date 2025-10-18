@@ -9,6 +9,9 @@
 extern bool newRequest;
 extern DNSServer dnsServer;
 extern char message;
+extern bool isWordMode;
+extern String currentWord;
+extern int currentLetterIndex;
 void StartServer();
 
 

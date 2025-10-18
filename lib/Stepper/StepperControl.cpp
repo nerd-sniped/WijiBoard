@@ -23,16 +23,16 @@ const float stepAngle = 0.17578125; // Degrees per step for your motor 360 / 204
 
 void InitializeSteppers()
 {
-    // Set up stepper parameters
-    stepper1.setMaxSpeed(500);
-    stepper1.setAcceleration(80);
+    // Set up stepper parameters - 50% faster speeds
+    stepper1.setMaxSpeed(750);        // Increased from 500 to 750
+    stepper1.setAcceleration(120);    // Increased from 80 to 120
     stepper1.setCurrentPosition(0);
-    stepper1.setSpeed(180); // Start both steppers moving towards sensor 1
+    stepper1.setSpeed(270);           // Increased from 180 to 270
 
-    stepper2.setMaxSpeed(500);
-    stepper2.setAcceleration(80);
+    stepper2.setMaxSpeed(750);        // Increased from 500 to 750
+    stepper2.setAcceleration(120);    // Increased from 80 to 120
     stepper2.setCurrentPosition(0);
-    stepper2.setSpeed(180); // Second Motor is Faster hopefully so it homes and stops first
+    stepper2.setSpeed(270);           // Increased from 180 to 270
 }
 
 bool PerformHoming()
@@ -90,15 +90,6 @@ void MoveSteppersTo(float angle1, float angle2)
     stepper1.enableOutputs();
     stepper2.enableOutputs();
 
-    /*stepper1.moveTo(-1024);
-    stepper2.moveTo(0);
-
-    while (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0)
-    {
-        stepper1.run();
-        stepper2.run();
-    }*/
-
     // Command the steppers to move
     stepper1.moveTo(-stepsForMotor1);
     stepper2.moveTo(-stepsForMotor2);
@@ -118,6 +109,60 @@ void MoveSteppersTo(float angle1, float angle2)
         stepper1.run();
         stepper2.run();
     }
+    stepper1.disableOutputs();
+    stepper2.disableOutputs();
+}
+
+void MoveSteppersToWithoutHome(float angle1, float angle2)
+{
+    // Use SAME coordinate calculations as MoveSteppersTo()
+    short stepsForMotor1 = round(angle2 / stepAngle);
+    short stepsForMotor2 = round(angle1 / stepAngle);
+
+    Serial.println("Word mode - stepsformotor1: " + String(angle2 / stepAngle));
+    Serial.println("Word mode - stepsformotor2: " + String(angle1 / stepAngle));
+
+    stepper1.enableOutputs();
+    stepper2.enableOutputs();
+
+    // Use SAME movement pattern as MoveSteppersTo() but without home return
+    stepper1.moveTo(-stepsForMotor1);
+    stepper2.moveTo(-stepsForMotor2);
+
+    // Wait for movement to complete
+    while (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0)
+    {
+        stepper1.run();
+        stepper2.run();
+    }
+
+    // Brief pause at position
+    delay(300);
+    
+    // Keep outputs enabled for next movement
+    // DO NOT return home or disable outputs
+}
+
+void ReturnHome()
+{
+    // Enable stepper outputs  
+    stepper1.enableOutputs();
+    stepper2.enableOutputs();
+
+    // Use EXACT same home position as MoveSteppersTo()
+    stepper1.moveTo(-1024);
+    stepper2.moveTo(0);
+
+    // Wait for movement to complete
+    while (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0)
+    {
+        stepper1.run();
+        stepper2.run();
+    }
+
+    delay(500);
+
+    // Disable outputs to save power
     stepper1.disableOutputs();
     stepper2.disableOutputs();
 }

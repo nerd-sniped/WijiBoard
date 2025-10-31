@@ -23,16 +23,15 @@ const float stepAngle = 0.17578125; // Degrees per step for your motor 360 / 204
 
 void InitializeSteppers()
 {
-    // Set up stepper parameters - 50% faster speeds
-    stepper1.setMaxSpeed(600);        // Increased from 500 to 750
-    stepper1.setAcceleration(100);    // Increased from 80 to 120
+    stepper1.setMaxSpeed(600);        
+    stepper1.setAcceleration(100);    
     stepper1.setCurrentPosition(0);
-    stepper1.setSpeed(220);           // Increased from 180 to 270
+    stepper1.setSpeed(220);           
 
-    stepper2.setMaxSpeed(600);        // Increased from 500 to 750
-    stepper2.setAcceleration(100);    // Increased from 80 to 120
+    stepper2.setMaxSpeed(600);       
+    stepper2.setAcceleration(100);    
     stepper2.setCurrentPosition(0);
-    stepper2.setSpeed(220);           // Increased from 180 to 270
+    stepper2.setSpeed(220);           
 }
 
 bool PerformHoming()

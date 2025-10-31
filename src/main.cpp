@@ -2,6 +2,7 @@
 #include "ServerLib.h"
 #include "PositionControl.h"
 #include "StepperControl.h"
+#include <ElegantOTA.h>
 
 // Function prototypes
 void KeyPress();
@@ -33,6 +34,7 @@ void setup()
 void loop()
 {
     KeyPress();
+    ElegantOTA.loop();
 }
 
 void KeyPress()

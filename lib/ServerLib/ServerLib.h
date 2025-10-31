@@ -5,6 +5,7 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <ElegantOTA.h>
 
 extern bool newRequest;
 extern DNSServer dnsServer;
@@ -12,7 +13,7 @@ extern char message;
 extern bool isWordMode;
 extern String currentWord;
 extern int currentLetterIndex;
-void StartServer();
 
+void StartServer();
 
 #endif

@@ -6,6 +6,7 @@
 #include <FS.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <ElegantOTA.h>
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
@@ -15,8 +16,8 @@ const char *ssid = "WijiBoard";
 const char *password = "Planchette";
 const char *hostname = "WijiBoard";
 
-IPAddress local_ip(8, 8, 8, 8);
-IPAddress gateway(8, 8, 8, 8);
+IPAddress local_ip(192, 168, 4, 1);
+IPAddress gateway(192, 168, 4, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 AsyncWebServer server(80);
@@ -34,16 +35,12 @@ void StartServer()
     Serial.println("StartServer() called");
 
     WiFi.softAPConfig(local_ip, gateway, subnet);
-    /*WiFi.mode(WIFI_AP);*/
     bool apSuccess = WiFi.softAP(ssid);
 
-    if (!SPIFFS.begin(true))
-    {
+    if (!SPIFFS.begin(true)) {
         Serial.println("An Error has occurred while mounting SPIFFS");
         return; // Don't continue if we can't initialize SPIFFS
-    }
-    else
-    {
+    } else {
         Serial.println("SPIFFS mounted successfully");
     }
 
@@ -136,10 +133,11 @@ void StartServer()
             request->send(404, "text/plain", "SpecialElite.woff2 not found");
         }
     });
-
+        ElegantOTA.setAuth("", ""); // No authentication
+        ElegantOTA.begin(&server); // Start ElegantOTA
         server.begin();
         Serial.println("Server started");
-
+        Serial.println("ElegantOTA ready at /update");
 }
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {

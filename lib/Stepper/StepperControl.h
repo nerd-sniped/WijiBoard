@@ -11,5 +11,7 @@ extern AccelStepper stepper2;
 void InitializeSteppers();
 bool PerformHoming();
 void MoveSteppersTo(float angle1, float angle2);
+void MoveSteppersToWithoutHome(float angle1, float angle2);
+void ReturnHome();
 
 #endif // STEPPER_HOMING_H

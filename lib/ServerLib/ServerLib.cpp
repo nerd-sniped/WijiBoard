@@ -1,4 +1,3 @@
-
 #include "ServerLib.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
@@ -7,6 +6,7 @@
 #include <FS.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <ElegantOTA.h>
 
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
@@ -16,29 +16,31 @@ const char *ssid = "WijiBoard";
 const char *password = "Planchette";
 const char *hostname = "WijiBoard";
 
-IPAddress local_ip(8, 8, 8, 8);
-IPAddress gateway(8, 8, 8, 8);
+IPAddress local_ip(192, 168, 4, 1);
+IPAddress gateway(192, 168, 4, 1);
 IPAddress subnet(255, 255, 255, 0);
 
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 DNSServer dnsServer;
 
+extern bool newRequest;
+extern char message;
+extern bool isWordMode;           // Add new flag
+extern String currentWord;        // Add word storage
+extern int currentLetterIndex;    // Add letter index
+
 void StartServer()
 {
     Serial.println("StartServer() called");
 
     WiFi.softAPConfig(local_ip, gateway, subnet);
-    /*WiFi.mode(WIFI_AP);*/
     bool apSuccess = WiFi.softAP(ssid);
 
-    if (!SPIFFS.begin(true))
-    {
+    if (!SPIFFS.begin(true)) {
         Serial.println("An Error has occurred while mounting SPIFFS");
         return; // Don't continue if we can't initialize SPIFFS
-    }
-    else
-    {
+    } else {
         Serial.println("SPIFFS mounted successfully");
     }
 
@@ -131,10 +133,11 @@ void StartServer()
             request->send(404, "text/plain", "SpecialElite.woff2 not found");
         }
     });
-
+        ElegantOTA.setAuth("", ""); // No authentication
+        ElegantOTA.begin(&server); // Start ElegantOTA
         server.begin();
         Serial.println("Server started");
-
+        Serial.println("ElegantOTA ready at /update");
 }
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
@@ -142,10 +145,24 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
     {
         data[len] = 0;
-        message = ((char *)data)[0];
-        String messageStr = String(message); // Convert char to String
-        ws.textAll(messageStr.c_str());      // Send the string
-        newRequest = true;
+        String receivedMessage = String((char*)data);
+        
+        // Check if it's a word sequence
+        if (receivedMessage.startsWith("WORD:")) {
+            currentWord = receivedMessage.substring(5); // Remove "WORD:" prefix
+            currentLetterIndex = 0;
+            isWordMode = true;
+            newRequest = true;
+            Serial.println("Word received: " + currentWord);
+        } else if (len == 1) {
+            // Single character (existing functionality)
+            message = (char)data[0];
+            isWordMode = false;
+            newRequest = true;
+            Serial.println("Single character: " + String(message));
+        }
+        
+        ws.textAll(String((char*)data));
     }
 }
 

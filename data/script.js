@@ -41,3 +41,29 @@ function onClose(event) {
 function onMessage(event) {
     console.log(event.data);
 }
+
+function submitWord() {
+    const textInput = document.getElementById('textInput');
+    const word = textInput.value.toUpperCase().trim();
+    
+    if (word.length === 0) {
+        alert('Please enter a word');
+        return;
+    }
+    
+    // Send word with special prefix to indicate it's a word sequence
+    websocket.send('WORD:' + word);
+    textInput.value = ''; // Clear input
+}
+
+// Allow Enter key to submit
+document.addEventListener('DOMContentLoaded', function() {
+    const textInput = document.getElementById('textInput');
+    if (textInput) {
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitWord();
+            }
+        });
+    }
+});

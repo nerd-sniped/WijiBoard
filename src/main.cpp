@@ -96,7 +96,7 @@ void ProcessWordSequence()
         Angles ang = calculateInverseKinematics(coord);
         
         // Use direct movement for word sequences (no home return)
-        MoveSteppersToWithoutHome(ang.theta1, ang.theta2);
+        MoveSteppersTo(ang.theta1, ang.theta2);
         
         currentLetterIndex++;
         

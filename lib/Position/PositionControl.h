@@ -20,5 +20,6 @@ extern std::map<char, Coordinate> lookupTable;
 // Declare a function to initialize the lookupTable
 Coordinate XYTableLookup(char key);
 Angles calculateInverseKinematics(Coordinate coord);
+Coordinate calculateForwardKinematics(Angles ang);
 
 #endif // LOOKUPTABLE_H

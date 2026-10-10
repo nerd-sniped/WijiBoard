@@ -115,3 +115,28 @@ Angles calculateInverseKinematics(Coordinate coord)
     return Angles{angle1, angle2};
 }
 
+// Inverse of calculateInverseKinematics(): where the planchette sits for a pair of motor angles
+Coordinate calculateForwardKinematics(Angles ang)
+{
+    const float d2 = 12.9;   // Half length of base link
+    const float l1 = 85.0;  // Length of secondary links
+    const float l2 = 110.0; // Length of Third links
+
+    float theta1 = ang.theta1 * DEG_TO_RAD;
+    float theta2 = ang.theta2 * DEG_TO_RAD;
+
+    // Elbow positions at the end of each secondary link
+    float e1x = d2 + l1 * cos(theta1);
+    float e1y = l1 * sin(theta1);
+    float e2x = -d2 + l1 * cos(theta2);
+    float e2y = l1 * sin(theta2);
+
+    // Planchette is where the two third links meet, on the far side of the elbows
+    float dx = e1x - e2x;
+    float dy = e1y - e2y;
+    float dist = sqrt(dx * dx + dy * dy);
+    float h = sqrt(l2 * l2 - dist * dist / 4);
+
+    return Coordinate{(e1x + e2x) / 2 - h * dy / dist, (e1y + e2y) / 2 + h * dx / dist};
+}
+

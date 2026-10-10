@@ -1,7 +1,15 @@
 #include <AccelStepper.h>
+#include "PositionControl.h"
 
 #define FULLSTEP 4
 #define STEP_PER_REV 2048
+
+#define MAX_SPEED 600.0f    // Steps per second
+#define ACCELERATION 100.0f // Steps per second^2
+
+// Upper bound for the planchette: Y of 'G', plus slack for step rounding
+#define MAX_Y 128.9f
+#define PATH_SAMPLES 40
 
 // Define stepper motor control pins
 #define motorPin1 4 // IN1 on ULN2003 ==> Blue   on 28BYJ-48
@@ -23,13 +31,13 @@ const float stepAngle = 0.17578125; // Degrees per step for your motor 360 / 204
 
 void InitializeSteppers()
 {
-    stepper1.setMaxSpeed(600);        
-    stepper1.setAcceleration(100);    
+    stepper1.setMaxSpeed(MAX_SPEED);
+    stepper1.setAcceleration(ACCELERATION);
     stepper1.setCurrentPosition(0);
-    stepper1.setSpeed(220);           
+    stepper1.setSpeed(220);
 
-    stepper2.setMaxSpeed(600);       
-    stepper2.setAcceleration(100);    
+    stepper2.setMaxSpeed(MAX_SPEED);
+    stepper2.setAcceleration(ACCELERATION);
     stepper2.setCurrentPosition(0);
     stepper2.setSpeed(220);           
 }
@@ -135,11 +143,59 @@ void MoveSteppersToWithoutHome(float angle1, float angle2)
         stepper2.run();
     }
 
-    // Brief pause at position
-    delay(300);
-    
     // Keep outputs enabled for next movement
     // DO NOT return home or disable outputs
+}
+
+// Seconds a stepper spends accelerating during a move of the given number of steps
+static float RampTime(float steps)
+{
+    return min(sqrtf(steps / ACCELERATION), MAX_SPEED / ACCELERATION);
+}
+
+// Seconds a move of the given number of steps takes
+static float MoveDuration(float steps)
+{
+    if (steps < 1) return 0;
+    float ramp = RampTime(steps);
+    return ramp + steps / (ACCELERATION * ramp);
+}
+
+// Fraction (0 to 1) of a move completed after t seconds, following AccelStepper's ramp up / cruise / ramp down
+static float MoveProgress(float steps, float t)
+{
+    if (steps < 1) return 1;
+    float ramp = RampTime(steps);
+    float duration = MoveDuration(steps);
+
+    if (t >= duration) return 1;
+    if (t < ramp) return 0.5f * ACCELERATION * t * t / steps;
+    if (t > duration - ramp) return 1 - 0.5f * ACCELERATION * (duration - t) * (duration - t) / steps;
+    return (0.5f * ACCELERATION * ramp * ramp + ACCELERATION * ramp * (t - ramp)) / steps;
+}
+
+// Simulates a direct move between two sets of angles. Each motor ramps independently, so the
+// planchette swings off the straight line between the two points. Returns how far (mm) the
+// path goes past MAX_Y; zero or negative means the move stays in bounds.
+float PathOvershoot(Angles from, Angles to)
+{
+    float steps1 = fabs(to.theta1 - from.theta1) / stepAngle;
+    float steps2 = fabs(to.theta2 - from.theta2) / stepAngle;
+    float duration = MoveDuration(max(steps1, steps2));
+    float highest = -INFINITY;
+
+    for (int i = 1; i < PATH_SAMPLES; i++)
+    {
+        float t = duration * i / PATH_SAMPLES;
+        Angles ang;
+        ang.theta1 = from.theta1 + (to.theta1 - from.theta1) * MoveProgress(steps1, t);
+        ang.theta2 = from.theta2 + (to.theta2 - from.theta2) * MoveProgress(steps2, t);
+
+        float y = calculateForwardKinematics(ang).y;
+        if (isnan(y)) return NAN; // Arms cannot reach - never treat as safe
+        highest = max(highest, y);
+    }
+    return highest - MAX_Y;
 }
 
 void ReturnHome()

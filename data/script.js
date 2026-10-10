@@ -14,6 +14,15 @@ function setupButtonListeners() {
 
     buttons.forEach(function(button) {
         button.addEventListener('click', function() {
+            // Buttons carrying data-word spell the whole word instead of one key
+            var word = this.dataset.word;
+            if (word) {
+                console.log('Button ' + this.id + ' clicked, spelling ' + word);
+                // data-direct skips the return home between letters
+                sendWord(word, 'direct' in this.dataset);
+                return;
+            }
+
             var key = this.id;
             console.log('Button ' + key + ' clicked');
             websocket.send(key); // Send the key as a WebSocket message
@@ -51,9 +60,14 @@ function submitWord() {
         return;
     }
     
-    // Send word with special prefix to indicate it's a word sequence
-    websocket.send('WORD:' + word);
+    sendWord(word);
     textInput.value = ''; // Clear input
+}
+
+function sendWord(word, direct = false) {
+    // Send word with special prefix to indicate it's a word sequence
+    // DIRECT: glides letter to letter, WORD: returns home after each letter
+    websocket.send((direct ? 'DIRECT:' : 'WORD:') + word);
 }
 
 // Allow Enter key to submit

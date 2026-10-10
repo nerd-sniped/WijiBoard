@@ -27,6 +27,7 @@ DNSServer dnsServer;
 extern bool newRequest;
 extern char message;
 extern bool isWordMode;           // Add new flag
+extern bool wordReturnHome;       // Return home between letters of a word
 extern String currentWord;        // Add word storage
 extern int currentLetterIndex;    // Add letter index
 
@@ -148,8 +149,11 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
         String receivedMessage = String((char*)data);
         
         // Check if it's a word sequence
-        if (receivedMessage.startsWith("WORD:")) {
-            currentWord = receivedMessage.substring(5); // Remove "WORD:" prefix
+        // "DIRECT:" is the same as "WORD:" but skips the home return between letters
+        bool isDirect = receivedMessage.startsWith("DIRECT:");
+        if (isDirect || receivedMessage.startsWith("WORD:")) {
+            currentWord = receivedMessage.substring(isDirect ? 7 : 5); // Remove prefix
+            wordReturnHome = !isDirect;
             currentLetterIndex = 0;
             isWordMode = true;
             newRequest = true;

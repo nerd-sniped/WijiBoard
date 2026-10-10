@@ -8,12 +8,17 @@
 void KeyPress();
 void ProcessSingleCharacter();
 void ProcessWordSequence();
+void MoveWithinBounds(Coordinate from, Coordinate to);
 Coordinate XYTableLookup(char key);
 Angles calculateInverseKinematics(Coordinate coord);
+
+#define MAX_SPLITS 3 // Levels of interstitial points to try before giving up on a direct path
 
 bool newRequest = false;
 char message = '*';
 bool isWordMode = false;
+bool wordReturnHome = true; // false = glide letter to letter, home only at the end
+char lastWordChar = 0; // Letter the planchette is resting on, 0 = home
 String currentWord = "";
 int currentLetterIndex = 0;
 
@@ -66,6 +71,45 @@ void ProcessSingleCharacter()
     MoveSteppersTo(ang.theta1, ang.theta2); // Still return home for single characters
 }
 
+// Works out the points to travel through to get from one coordinate to another without the
+// planchette swinging out of bounds. Where the direct move would overshoot, an interstitial
+// point is added halfway, pulled inward by the overshoot, and each half is checked again.
+// Returns false if no safe route was found within MAX_SPLITS levels.
+bool PlanPath(Coordinate from, Coordinate to, int splits, Coordinate *path, int &count)
+{
+    float overshoot = PathOvershoot(calculateInverseKinematics(from), calculateInverseKinematics(to));
+    if (overshoot <= 0) {
+        path[count++] = to;
+        return true;
+    }
+    if (splits == 0) {
+        return false;
+    }
+
+    Coordinate mid = {(from.x + to.x) / 2, (from.y + to.y) / 2 - overshoot};
+    return PlanPath(from, mid, splits - 1, path, count) && PlanPath(mid, to, splits - 1, path, count);
+}
+
+// Letter to letter move without returning home, routed to stay within the board
+void MoveWithinBounds(Coordinate from, Coordinate to)
+{
+    Coordinate path[1 << MAX_SPLITS];
+    int count = 0;
+
+    if (!PlanPath(from, to, MAX_SPLITS, path, count)) {
+        // Home moves are known to be safe, so fall back to going via home
+        Serial.println("No safe direct path - going via home");
+        ReturnHome();
+        path[0] = to;
+        count = 1;
+    }
+
+    for (int i = 0; i < count; i++) {
+        Angles ang = calculateInverseKinematics(path[i]);
+        MoveSteppersToWithoutHome(ang.theta1, ang.theta2);
+    }
+}
+
 void ProcessWordSequence()
 {
     if (currentLetterIndex < currentWord.length()) {
@@ -95,9 +139,22 @@ void ProcessWordSequence()
         
         Angles ang = calculateInverseKinematics(coord);
         
-        // Use direct movement for word sequences (no home return)
-        MoveSteppersTo(ang.theta1, ang.theta2);
-        
+        if (wordReturnHome) {
+            MoveSteppersTo(ang.theta1, ang.theta2);
+        } else {
+            if (lastWordChar == 0) {
+                MoveSteppersToWithoutHome(ang.theta1, ang.theta2);
+            } else if (currentChar == lastWordChar) {
+                // Repeated letter (e.g. "LL") - go home first so the second one is visible
+                ReturnHome();
+                MoveSteppersToWithoutHome(ang.theta1, ang.theta2);
+            } else {
+                MoveWithinBounds(XYTableLookup(lastWordChar), coord);
+            }
+            delay(300); // Brief pause at position
+            lastWordChar = currentChar;
+        }
+
         currentLetterIndex++;
         
         // Check if word is complete
@@ -107,7 +164,8 @@ void ProcessWordSequence()
             // Return home only at the end of the complete word
             Serial.println("Returning to home position");
             ReturnHome();
-            
+            lastWordChar = 0;
+
             isWordMode = false;
             currentWord = "";
             currentLetterIndex = 0;
@@ -117,7 +175,11 @@ void ProcessWordSequence()
             delay(200); // Brief pause between letters
         }
     } else {
-        // Safety check - if we somehow get here, reset everything
+        // Word ended on a skipped character - make sure we are not left sitting on a letter
+        if (lastWordChar != 0) {
+            ReturnHome();
+            lastWordChar = 0;
+        }
         isWordMode = false;
         currentWord = "";
         currentLetterIndex = 0;

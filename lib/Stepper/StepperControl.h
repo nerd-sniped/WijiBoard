@@ -14,6 +14,7 @@ bool PerformHoming();
 void MoveSteppersTo(float angle1, float angle2);
 void MoveSteppersToWithoutHome(float angle1, float angle2);
 void ReturnHome();
-float PathOvershoot(Angles from, Angles to);
+void MoveSteppersAlong(const Angles *path, int count);
+float PathOvershoot(const Angles *path, int count, int &worst);
 
 #endif // STEPPER_HOMING_H

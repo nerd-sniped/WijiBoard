@@ -209,7 +209,7 @@ body {
   /* Ensures the pseudo-element doesn't go outside the button */
 }
 
-/* Word keys wear the bigkey face but sit centered alone in their own row */
+/* Word keys wear the bigkey face and sit beside Spell Word */
 .wordkey {
   float: none;
   margin-right: 0;

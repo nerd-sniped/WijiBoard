@@ -27,7 +27,8 @@ DNSServer dnsServer;
 extern bool newRequest;
 extern char message;
 extern bool isWordMode;           // Add new flag
-extern bool wordReturnHome;       // Return home between letters of a word
+extern bool homeRequest;          // Re-run the homing sequence
+extern bool wordReturnHome;      // Return home between letters of a word
 extern String currentWord;        // Add word storage
 extern int currentLetterIndex;    // Add letter index
 
@@ -158,6 +159,9 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
             isWordMode = true;
             newRequest = true;
             Serial.println("Word received: " + currentWord);
+        } else if (receivedMessage == "HOME") {
+            homeRequest = true;
+            Serial.println("Homing requested");
         } else if (len == 1) {
             // Single character (existing functionality)
             message = (char)data[0];

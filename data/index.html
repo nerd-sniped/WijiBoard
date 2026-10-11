@@ -22,12 +22,16 @@
             <!-- Add text input section -->
             <div class="text-input-section">
                 <input type="text" id="textInput" placeholder="Enter word or phrase" maxlength="50">
-                <button class="bigkey" id="submitText" onclick="submitWord()">Spell Word</button>
+                <div class="keyrow">
+                    <button class="bigkey" id="submitText" onclick="submitWord()">Spell Word</button>
+                    <button class="bigkey wordkey" id="rosabelle" data-word="ROSABELLE" data-direct> Rosabelle </button>
+                </div>
             </div>
             <div class="spacer"></div>
 
             <button class="medkey" id="+"> Yes </button>
             <button class="medkey" id="-"> No </button>
+            <button class="medkey" id="HOME"> Home </button>
             <div class="spacer"></div>
             
             <button class="keys" id="0">0</button>
@@ -77,9 +81,6 @@
 
             <button class="bigkey" id="*"> GoodBye </button>
             <button class="bigkey" id=","> Hello </button>
-            <div class="spacer"></div>
-
-            <button class="bigkey wordkey" id="rosabelle" data-word="ROSABELLE" data-direct> Rosabelle </button>
             <div class="spacer"></div>
     </div>
     <script src="/script.js"></script>
